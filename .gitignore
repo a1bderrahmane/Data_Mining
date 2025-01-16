@@ -1,0 +1,39 @@
+# Ignore the virtual environment folder
+myenv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Environment variables
+.env
+*.env
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# macOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+Desktop.ini
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+
+# Logs and debug output
+*.log
+
+# Python egg files
+*.egg
+*.egg-info/
+dist/
+build/
+.csv

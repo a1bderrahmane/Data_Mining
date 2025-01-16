@@ -1,0 +1,19 @@
+# installation of required libraries and dependencies
+# numeric calculations
+
+# data frames
+pandas==2.1.1
+# machine learning algorithms
+scikit-learn==1.5.1
+scipy==1.12.0
+# plotting
+plotly==5.24.1
+matplotlib==3.8.0
+seaborn==0.13.2
+plotly-express==0.4.1
+chart-studio==1.1.0
+# web app library
+streamlit==1.37.1
+# association rules
+mlxtend==0.23.3
+nbformat==5.9.2
