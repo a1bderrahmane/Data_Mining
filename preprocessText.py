@@ -6,6 +6,7 @@ from nltk.stem import SnowballStemmer
 from sklearn.feature_extraction.text import CountVectorizer,TfidfVectorizer
 import spacy
 import re
+from rapidfuzz import process, fuzz
 
 nltk.download('stopwords')
 stop_words = list(stopwords.words('french'))
@@ -13,6 +14,7 @@ stop_words+=list(stopwords.words('english'))
 stop_words=set(stop_words)
 stemmer = SnowballStemmer('french')
 nlp = spacy.load('fr_core_news_md')
+
 # print(stop_words)
 def process_text(text):
     if text is None or pd.isna(text):
@@ -93,11 +95,45 @@ def compute_tfidf_by_cluster(df, cluster_col, text_col, top_n=10):
 
     return tfidf_scores_by_cluster
 
-# Assuming 'sampled_df' has columns 'cluster' and 'processed_text'
-top_words_by_cluster = compute_tfidf_by_cluster(sampled_df, 'cluster', 'processed_title', top_n=10)
 
-# Display the results
-for cluster, words in top_words_by_cluster.items():
-    print(f"Cluster {cluster}:")
-    for word, score in words:
-        print(f"  {word}: {score:.4f}")
+def compute_tfidf_by_cluster(df, cluster_col,col1,col2, top_n=10):
+    if cluster_col not in df.columns:
+        raise ValueError(f"Column '{cluster_col}' not found in DataFrame.")
+    if col1 not in df.columns or col2 not in df.columns:
+        raise ValueError("Columns col1 or col2 not found in DataFrame.")
+    
+    df['combined_text'] = df[[col1, col2]].apply(lambda row: ' '.join(row.dropna().astype(str)), axis=1)
+    cluster_groups = df.groupby(cluster_col)['combined_text'].apply(lambda x: ' '.join(x))
+    
+    tfidf_vectorizer = TfidfVectorizer(stop_words=list(stop_words))
+    tfidf_matrix = tfidf_vectorizer.fit_transform(cluster_groups)
+    
+    feature_names = tfidf_vectorizer.get_feature_names_out()
+    tfidf_scores_by_cluster = {}
+    for idx, cluster in enumerate(cluster_groups.index):
+        scores = tfidf_matrix[idx].toarray().flatten()
+        word_score_pairs = list(zip(feature_names, scores))
+        sorted_words = sorted(word_score_pairs, key=lambda x: x[1], reverse=True)[:top_n]
+        tfidf_scores_by_cluster[cluster] = sorted_words
+    
+    return tfidf_scores_by_cluster
+
+
+def reverse(df, cluster_col, col1, col2, tokenized_clusters, max_words=10, similarity_threshold=40):
+    reversed_clusters = {}
+    for cluster_id, tokens in tokenized_clusters.items():
+        cluster_data = df[df[cluster_col] == cluster_id]
+        original_text = ' '.join(cluster_data[col1].fillna('') + ' ' + cluster_data[col2].fillna(''))
+        original_words = set(original_text.split())
+        corrected_tokens = set()  
+        for token in tokens:
+            # Find the closest match using Levenshtein distance with a high threshold
+            match_info = process.extractOne(token, original_words, scorer=fuzz.token_set_ratio	)
+            if match_info:
+                match, score, _ = match_info  # Extract the closest substring
+                if score > similarity_threshold:
+                    corrected_tokens.add(match)
+                else:
+                    corrected_tokens.add(token)
+        reversed_clusters[cluster_id] = list(corrected_tokens)[:max_words]
+    return reversed_clusters
