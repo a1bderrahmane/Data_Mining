@@ -62,11 +62,11 @@ def get_most_frequent_words_by_cluster(df, cluster_col, text_col, top_n=30):
 
 
 def remove_non_significant_words(text):
-    non_significant_words = {'france', 'lyon', 'img', 'jpg', 'jpeg','dsc','ddc'}
+    non_significant_words = {'france', 'lyon', 'img', 'jpg', 'jpeg','dsc','ddc','instagramapp','4e1c46c062e11cdc74409581','4be26f00b02ec9b6a1004dc0','iphoneography','20180406_190930','20141021_130444','nude','import'}
     if text is None or pd.isna(text):
         return ''
     tokens = text.split()
-    filtered_tokens = [word for word in tokens if word.lower() not in non_significant_words]
+    filtered_tokens = [word for word in tokens if( word.lower() not in non_significant_words and not any(char.isdigit() for char in word))]
     return " ".join(filtered_tokens)
 
 
