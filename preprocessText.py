@@ -10,7 +10,7 @@ from rapidfuzz import process, fuzz
 
 nltk.download('stopwords')
 stop_words = list(stopwords.words('french'))
-stop_words+=list(stopwords.words('english'))
+# stop_words+=list(stopwords.words('english'))
 stop_words=set(stop_words)
 stemmer = SnowballStemmer('french')
 nlp = spacy.load('fr_core_news_md')
@@ -62,14 +62,46 @@ def get_most_frequent_words_by_cluster(df, cluster_col, text_col, top_n=30):
 
 
 def remove_non_significant_words(text):
-    non_significant_words = {'france', 'lyon', 'img', 'jpg', 'jpeg','dsc','ddc','instagramapp','4e1c46c062e11cdc74409581','4be26f00b02ec9b6a1004dc0','iphoneography','20180406_190930','20141021_130444','nude','import'}
+    non_significant_words = {'france', 'lyon', 'img', 'jpg', 'jpeg','dsc','ddc','rhone'}
     if text is None or pd.isna(text):
         return ''
     tokens = text.split()
     filtered_tokens = [word for word in tokens if( word.lower() not in non_significant_words and not any(char.isdigit() for char in word))]
     return " ".join(filtered_tokens)
 
+def get_most_frequent_words_by_cluster2(df, cluster_col, text_col, top_n=30):
+    if cluster_col not in df.columns or text_col not in df.columns:
+        raise ValueError(f"Columns '{cluster_col}' or '{text_col}' not found in DataFrame.")
+    
+    # 1) Group the text by cluster
+    cluster_groups = df.groupby(cluster_col)[text_col].apply(
+        lambda x: ' '.join(str(v) for v in x.dropna())
+    )
+    
+    frequent_words_by_cluster = {}
+    
+    for cluster, text in cluster_groups.items():
+        text = text.strip()
+        
 
+        tokens = re.findall(r'\w+', text.lower())  # split on words, ignoring punctuation
+        filtered_tokens = [t for t in tokens if t not in stop_words]  # remove French stop words
+        
+        if not filtered_tokens:
+            frequent_words_by_cluster[cluster] = []
+            continue
+        filtered_text = ' '.join(filtered_tokens)
+        
+        vectorizer = CountVectorizer()  
+        X = vectorizer.fit_transform([filtered_text])
+        
+        word_counts = X.toarray().sum(axis=0)
+        word_freq = dict(zip(vectorizer.get_feature_names_out(), word_counts))
+        
+        most_common_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:top_n]
+        frequent_words_by_cluster[cluster] = most_common_words
+    
+    return frequent_words_by_cluster
 
 def compute_tfidf_by_cluster(df, cluster_col, text_col, top_n=10):
     if cluster_col not in df.columns or text_col not in df.columns:
